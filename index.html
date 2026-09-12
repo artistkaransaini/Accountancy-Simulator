@@ -1,0 +1,65 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Accountancy Simulator Prototype</title>
+
+  <!-- External stylesheet -->
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- Left sidebar -->
+  <aside id="sidebar">
+    <div>
+      <div class="brand-header">
+        <h1>Accountancy Simulator</h1>
+        <span class="badge">Prototype 0.1</span>
+      </div>
+
+      <div class="class-selector">
+        <label>Select Grade</label>
+        <select disabled>
+          <option>Class 11th (Foundations)</option>
+          <option>Class 12th (Locked)</option>
+        </select>
+      </div>
+
+      <nav class="table-nav">
+        <h3>Active Statements</h3>
+        <ul id="active-tables-list">
+          <!-- Dynamically populated -->
+        </ul>
+      </nav>
+    </div>
+
+    <div class="dev-tag">
+      <span class="dot"></span>
+      <span>Dev: <strong>Karan Saini</strong></span>
+    </div>
+  </aside>
+
+  <!-- Main Workspace -->
+  <main id="main-content">
+    <header class="top-bar">
+      <div class="header-titles">
+        <p id="mode-sub">
+          Hover over entries to trace double-entry flow across tables in real time.
+        </p>
+      </div>
+
+      <button class="mode-toggle-btn" id="mode-toggle">Switch to Empty Sandbox</button>
+    </header>
+
+    <div id="workspace">
+      <!-- Dynamic content renders here -->
+    </div>
+  </main>
+
+  <div id="toast">Entry Posted Successfully!</div>
+
+  <!-- External script -->
+  <script src="script.js"></script>
+</body>
+</html>
