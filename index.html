@@ -4,13 +4,10 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Accountancy Simulator Prototype</title>
-
-  <!-- External stylesheet -->
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-  <!-- Left sidebar -->
   <aside id="sidebar">
     <div>
       <div class="brand-header">
@@ -28,9 +25,7 @@
 
       <nav class="table-nav">
         <h3>Active Statements</h3>
-        <ul id="active-tables-list">
-          <!-- Dynamically populated -->
-        </ul>
+        <ul id="active-tables-list"></ul>
       </nav>
     </div>
 
@@ -40,26 +35,57 @@
     </div>
   </aside>
 
-  <!-- Main Workspace -->
   <main id="main-content">
     <header class="top-bar">
       <div class="header-titles">
-        <p id="mode-sub">
-          Hover over entries to trace double-entry flow across tables in real time.
-        </p>
+        <p>Hover over entries to trace double-entry flow across tables in real time.</p>
       </div>
-
-      <button class="mode-toggle-btn" id="mode-toggle">Switch to Empty Sandbox</button>
     </header>
 
     <div id="workspace">
-      <!-- Dynamic content renders here -->
+      <section class="table-card">
+        <div class="sandbox-header">
+          <h2>+ Post Journal Entry</h2>
+          <button id="clear-sandbox" class="clear-btn" type="button">Clear Sandbox</button>
+        </div>
+
+        <div class="sandbox-inputs">
+          <input id="input-dr" type="text" placeholder="Debit A/c (e.g. Rent A/c)">
+          <input id="input-cr" type="text" placeholder="Credit A/c (e.g. Cash A/c)">
+          <input id="input-amount" type="number" placeholder="Amount (₹)">
+          <input id="input-narration" type="text" placeholder="Narration (e.g. Being rent paid)">
+          <button id="post-entry" class="post-btn" type="button">Post Entry</button>
+        </div>
+      </section>
+
+      <section id="journal-card" class="table-card">
+        <div class="table-card-header">
+          <h2>Journal Book</h2>
+        </div>
+
+        <table>
+          <thead>
+            <tr>
+              <th style="width: 100px;">Date</th>
+              <th>Particulars</th>
+              <th style="width: 50px;">L.F.</th>
+              <th style="width: 120px;" class="num-col">Debit (₹)</th>
+              <th style="width: 120px;" class="num-col">Credit (₹)</th>
+            </tr>
+          </thead>
+          <tbody id="journal-body"></tbody>
+        </table>
+      </section>
+
+      <section id="ledger-section" class="ledger-section">
+        <h2 class="section-title">Ledger Entries</h2>
+        <div id="ledger-grid" class="ledger-grid"></div>
+      </section>
     </div>
   </main>
 
   <div id="toast">Entry Posted Successfully!</div>
 
-  <!-- External script -->
   <script src="script.js"></script>
 </body>
 </html>

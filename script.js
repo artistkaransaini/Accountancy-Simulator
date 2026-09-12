@@ -1,388 +1,348 @@
-﻿// --- STATE ---
-let currentMode = 'example'; // 'example' or 'sandbox'
+﻿
+let journalEntries = [];
 
-// Preset Class 11 example data
-const exampleJournal = [
-  {
-    id: 'txn-1',
-    date: '2026-04-01',
-    particularDr: 'Cash A/c',
-    particularCr: 'Capital A/c',
-    amount: 100000,
-    narration: 'Being business started with cash'
-  },
-  {
-    id: 'txn-2',
-    date: '2026-04-05',
-    particularDr: 'Purchases A/c',
-    particularCr: 'Cash A/c',
-    amount: 25000,
-    narration: 'Being goods purchased for cash'
-  },
-  {
-    id: 'txn-3',
-    date: '2026-04-10',
-    particularDr: 'Furniture A/c',
-    particularCr: 'Cash A/c',
-    amount: 10000,
-    narration: 'Being office furniture purchased'
-  }
-];
+// This object stores the important elements which will update often.
+let elements = {};
 
-let sandboxJournal = [];
+// Run the app once the page is ready.
+document.addEventListener('DOMContentLoaded', startApp);
 
-// --- APP START ---
-document.addEventListener('DOMContentLoaded', initializeApp);
-
-function initializeApp() {
-  const modeToggleButton = document.getElementById('mode-toggle');
-
-  if (modeToggleButton) {
-    modeToggleButton.addEventListener('click', toggleMode);
-  }
-
+function startApp() {
+  cacheDomElements();
+  bindEvents();
   render();
 }
 
-// --- MODE SWITCHING ---
-function toggleMode() {
-  currentMode = currentMode === 'example' ? 'sandbox' : 'example';
-
-  const modeToggleButton = document.getElementById('mode-toggle');
-
-  if (modeToggleButton) {
-    modeToggleButton.textContent =
-      currentMode === 'example' ? 'Switch to Empty Sandbox' : 'Switch to Example Mode';
-  }
-
-  const statusMessage =
-    currentMode === 'example'
-      ? 'Loaded Class 11 Example Data'
-      : 'Switched to Empty Sandbox';
-
-  showToast(statusMessage);
-  render();
+// Save references to the elements that already exist in HTML.
+function cacheDomElements() {
+  elements = {
+    activeTablesList: document.getElementById('active-tables-list'),
+    journalBody: document.getElementById('journal-body'),
+    ledgerGrid: document.getElementById('ledger-grid'),
+    ledgerSection: document.getElementById('ledger-section'),
+    toast: document.getElementById('toast'),
+    clearSandboxButton: document.getElementById('clear-sandbox'),
+    postEntryButton: document.getElementById('post-entry'),
+    inputDr: document.getElementById('input-dr'),
+    inputCr: document.getElementById('input-cr'),
+    inputAmount: document.getElementById('input-amount'),
+    inputNarration: document.getElementById('input-narration')
+  };
 }
 
+// Attach the click and hover events only once after the page loads.
+function bindEvents() {
+  elements.clearSandboxButton.addEventListener('click', clearSandbox);
+  elements.postEntryButton.addEventListener('click', handlePostEntry);
+
+  // These two listeners use event delegation.
+  // Instead of adding one mouseenter/leave per row, we listen to the whole table container.
+  elements.journalBody.addEventListener('mouseover', handleRowHover);
+  elements.journalBody.addEventListener('mouseleave', clearHighlights);
+
+  elements.ledgerGrid.addEventListener('mouseover', handleRowHover);
+  elements.ledgerGrid.addEventListener('mouseleave', clearHighlights);
+}
+
+// Clear all sandbox entries.
 function clearSandbox() {
-  sandboxJournal = [];
+  journalEntries = [];
   showToast('Sandbox Cleared!');
   render();
 }
 
-function getCurrentJournalData() {
-  return currentMode === 'example' ? exampleJournal : sandboxJournal;
+// Convert a number into Indian-style money text.
+function formatAmount(value) {
+  return Number(value).toLocaleString('en-IN');
 }
 
-function formatAmount(amount) {
-  return Number(amount).toLocaleString('en-IN');
-}
-
-// --- LEDGER BUILDING ---
-function buildLedgerData(journalData) {
+// Turn journal entries into ledger rows.
+// This is the heart of the app:
+// every journal entry has a debit account and a credit account,
+// so we create two ledger-side entries for the same transaction.
+function buildLedgerData(entries) {
   const ledgers = {};
 
-  journalData.forEach((entry) => {
+  for (let i = 0; i < entries.length; i += 1) {
+    const entry = entries[i];
+
+    // Make sure the debit account exists in the ledger object.
     if (!ledgers[entry.particularDr]) {
-      ledgers[entry.particularDr] = { debits: [], credits: [] };
+      ledgers[entry.particularDr] = {
+        debitEntries: [],
+        creditEntries: []
+      };
     }
 
-    ledgers[entry.particularDr].debits.push({
+    // Add the debit side for the debit account.
+    ledgers[entry.particularDr].debitEntries.push({
       txnId: entry.id,
       date: entry.date,
-      oppoAccount: 'To ' + entry.particularCr,
+      text: 'To ' + entry.particularCr,
       amount: entry.amount
     });
 
+    // Make sure the credit account exists in the ledger object.
     if (!ledgers[entry.particularCr]) {
-      ledgers[entry.particularCr] = { debits: [], credits: [] };
+      ledgers[entry.particularCr] = {
+        debitEntries: [],
+        creditEntries: []
+      };
     }
 
-    ledgers[entry.particularCr].credits.push({
+    // Add the credit side for the credit account.
+    ledgers[entry.particularCr].creditEntries.push({
       txnId: entry.id,
       date: entry.date,
-      oppoAccount: 'By ' + entry.particularDr,
+      text: 'By ' + entry.particularDr,
       amount: entry.amount
     });
-  });
+  }
 
   return ledgers;
 }
 
-// --- RENDERING ---
+// Main render function.
+// This is where the screen is refreshed after every action.
 function render() {
-  const workspace = document.getElementById('workspace');
-  const activeList = document.getElementById('active-tables-list');
+  const ledgers = buildLedgerData(journalEntries);
+  const accountNames = Object.keys(ledgers);
 
-  if (!workspace || !activeList) {
-    return;
+  // Send the ledger data to the sidebar so each account can show its count.
+  renderSidebar(ledgers, accountNames);
+  renderJournalTable(journalEntries);
+  renderLedgerTables(ledgers, accountNames);
+}
+
+// Build the sidebar list from the data.
+function renderSidebar(ledgers, accountNames) {
+  const items = [];
+
+  // Journal Book is always the first item in the sidebar.
+  items.push(`
+    <li class="active" data-target="journal-card">
+      Journal Book
+      <span class="count-badge">${journalEntries.length}</span>
+    </li>
+  `);
+
+  // Add each ledger account as a side item.
+  for (let i = 0; i < accountNames.length; i += 1) {
+    const accountName = accountNames[i];
+    const ledger = ledgers[accountName];
+    const totalEntries = ledger.debitEntries.length + ledger.creditEntries.length;
+
+    items.push(`
+      <li data-target="table-ledger-${cleanId(accountName)}">
+        ${accountName}
+        <span class="count-badge">${totalEntries}</span>
+      </li>
+    `);
   }
 
-  workspace.innerHTML = '';
-  activeList.innerHTML = '';
+  elements.activeTablesList.innerHTML = items.join('');
 
-  const journalData = getCurrentJournalData();
-  const ledgers = buildLedgerData(journalData);
-
-  addSidebarItem(activeList, 'Journal Book', journalData.length, 'active', () => {
-    scrollToElement('table-Journal');
-  });
-
-  Object.keys(ledgers).forEach((accountName) => {
-    const count = ledgers[accountName].debits.length + ledgers[accountName].credits.length;
-
-    addSidebarItem(activeList, accountName, count, '', () => {
-      scrollToElement(`table-ledger-${cleanId(accountName)}`);
+  // Attach click handling after the HTML is inserted.
+  elements.activeTablesList.querySelectorAll('li').forEach((item) => {
+    item.addEventListener('click', () => {
+      const targetId = item.dataset.target;
+      scrollTo(targetId);
     });
   });
-
-  if (currentMode === 'sandbox') {
-    renderSandboxForm(workspace);
-  }
-
-  renderJournalTable(workspace, journalData);
-
-  if (Object.keys(ledgers).length > 0) {
-    const ledgerHeading = document.createElement('h2');
-    ledgerHeading.className = 'section-title';
-    ledgerHeading.textContent = 'Ledger Entries';
-    workspace.appendChild(ledgerHeading);
-
-    const ledgerGrid = document.createElement('div');
-    ledgerGrid.className = 'ledger-grid';
-
-    Object.keys(ledgers).forEach((accountName) => {
-      renderLedgerTable(ledgerGrid, accountName, ledgers[accountName]);
-    });
-
-    workspace.appendChild(ledgerGrid);
-  }
 }
 
-function addSidebarItem(list, label, count, extraClass, clickHandler) {
-  const item = document.createElement('li');
-
-  if (extraClass) {
-    item.classList.add(extraClass);
-  }
-
-  item.innerHTML = `${label} <span class="count-badge">${count}</span>`;
-  item.onclick = clickHandler;
-
-  list.appendChild(item);
-}
-
-function renderSandboxForm(container) {
-  const card = document.createElement('div');
-  card.className = 'table-card';
-  card.innerHTML = `
-    <div class="sandbox-header">
-      <h2>+ Post Journal Entry</h2>
-      <button class="clear-btn" onclick="clearSandbox()">Clear Sandbox</button>
-    </div>
-    <div class="sandbox-inputs">
-      <input type="text" id="input-dr" placeholder="Debit A/c (e.g. Rent A/c)">
-      <input type="text" id="input-cr" placeholder="Credit A/c (e.g. Cash A/c)">
-      <input type="number" id="input-amount" placeholder="Amount (₹)">
-      <input type="text" id="input-narration" placeholder="Narration (e.g. Being rent paid)">
-      <button class="post-btn" id="add-entry-btn">Post Entry</button>
-    </div>
-  `;
-
-  container.appendChild(card);
-
-  const addEntryButton = document.getElementById('add-entry-btn');
-
-  if (addEntryButton) {
-    addEntryButton.addEventListener('click', handlePostEntry);
-  }
-}
-
-function handlePostEntry() {
-  const drInput = document.getElementById('input-dr');
-  const crInput = document.getElementById('input-cr');
-  const amountInput = document.getElementById('input-amount');
-  const narrationInput = document.getElementById('input-narration');
-
-  if (!drInput || !crInput || !amountInput || !narrationInput) {
-    return;
-  }
-
-  const debitAccount = drInput.value.trim();
-  const creditAccount = crInput.value.trim();
-  const amount = parseFloat(amountInput.value);
-  const narrationText = narrationInput.value.trim() || 'Transaction posted in sandbox';
-
-  if (!debitAccount || !creditAccount || Number.isNaN(amount) || amount <= 0) {
-    showToast('Please fill out Debit, Credit, and Amount correctly!');
-    return;
-  }
-
-  sandboxJournal.push({
-    id: 'txn-' + Date.now(),
-    date: new Date().toISOString().split('T')[0],
-    particularDr: debitAccount.endsWith('A/c') ? debitAccount : debitAccount + ' A/c',
-    particularCr: creditAccount.endsWith('A/c') ? creditAccount : creditAccount + ' A/c',
-    amount: amount,
-    narration: narrationText.startsWith('Being') ? narrationText : 'Being ' + narrationText
-  });
-
-  showToast('Entry Posted & Ledgers Updated!');
-  render();
-}
-
-function renderJournalTable(container, journalData) {
-  const card = document.createElement('div');
-  card.className = 'table-card';
-  card.id = 'table-Journal';
-
-  let rowsHtml = '';
-
-  if (journalData.length === 0) {
-    rowsHtml = `
+// Fill the Journal Book table body.
+// This part is simple: it only replaces the table rows inside the existing HTML table.
+function renderJournalTable(entries) {
+  if (entries.length === 0) {
+    elements.journalBody.innerHTML = `
       <tr>
         <td colspan="5" style="text-align:center; color: var(--text-muted); padding: 25px;">
           No entries posted. Fill the form above to build ledgers.
         </td>
       </tr>
     `;
-  } else {
-    journalData.forEach((entry) => {
-      rowsHtml += `
-        <tr class="hover-entry" data-txn-id="${entry.id}" onmouseenter="highlightTxn('${entry.id}')" onmouseleave="clearHighlight()">
-          <td>${entry.date}</td>
-          <td>
-            <span class="debit-text">${entry.particularDr}</span><br>
-            &nbsp;&nbsp;&nbsp;&nbsp;To <span class="credit-text">${entry.particularCr}</span><br>
-            <small style="color: var(--text-muted)">(${entry.narration})</small>
-          </td>
-          <td>—</td>
-          <td class="num-col">${formatAmount(entry.amount)}</td>
-          <td class="num-col">${formatAmount(entry.amount)}</td>
-        </tr>
-      `;
-    });
+    return;
   }
 
-  card.innerHTML = `
-    <div class="table-card-header">
-      <h2>Journal Book</h2>
-    </div>
-
-    <table>
-      <thead>
-        <tr>
-          <th style="width: 100px;">Date</th>
-          <th>Particulars</th>
-          <th style="width: 50px;">L.F.</th>
-          <th style="width: 120px;" class="num-col">Debit (₹)</th>
-          <th style="width: 120px;" class="num-col">Credit (₹)</th>
-        </tr>
-      </thead>
-      <tbody>${rowsHtml}</tbody>
-    </table>
-  `;
-
-  container.appendChild(card);
-}
-
-function renderLedgerTable(container, accountName, ledgerData) {
-  const card = document.createElement('div');
-  card.className = 'table-card';
-  card.id = `table-ledger-${cleanId(accountName)}`;
-
-  const maxRows = Math.max(ledgerData.debits.length, ledgerData.credits.length);
-  let rowsHtml = '';
-
-  for (let rowIndex = 0; rowIndex < maxRows; rowIndex += 1) {
-    const debitEntry = ledgerData.debits[rowIndex] || {};
-    const creditEntry = ledgerData.credits[rowIndex] || {};
-
-    rowsHtml += `
-      <tr>
-        <td>${debitEntry.date || ''}</td>
-        <td class="hover-entry" ${debitEntry.txnId ? `data-txn-id="${debitEntry.txnId}" onmouseenter="highlightTxn('${debitEntry.txnId}')" onmouseleave="clearHighlight()"` : ''}>
-          ${debitEntry.oppoAccount || ''}
+  const rows = entries.map((entry) => {
+    return `
+      <tr class="hover-entry" data-txn-id="${entry.id}">
+        <td>${entry.date}</td>
+        <td>
+          <span class="debit-text">${entry.particularDr}</span><br>
+          &nbsp;&nbsp;&nbsp;&nbsp;To <span class="credit-text">${entry.particularCr}</span><br>
+          <small style="color: var(--text-muted)">(${entry.narration})</small>
         </td>
-        <td class="num-col">${debitEntry.amount ? formatAmount(debitEntry.amount) : ''}</td>
-
-        <td>${creditEntry.date || ''}</td>
-        <td class="hover-entry" ${creditEntry.txnId ? `data-txn-id="${creditEntry.txnId}" onmouseenter="highlightTxn('${creditEntry.txnId}')" onmouseleave="clearHighlight()"` : ''}>
-          ${creditEntry.oppoAccount || ''}
-        </td>
-        <td class="num-col">${creditEntry.amount ? formatAmount(creditEntry.amount) : ''}</td>
+        <td>—</td>
+        <td class="num-col">${formatAmount(entry.amount)}</td>
+        <td class="num-col">${formatAmount(entry.amount)}</td>
       </tr>
     `;
-  }
+  }).join('');
 
-  card.innerHTML = `
-    <div class="table-card-header">
-      <h2>${accountName}</h2>
-    </div>
-
-    <table>
-      <thead>
-        <tr>
-          <th colspan="3" style="text-align:center; background: rgba(56, 189, 248, 0.08);">Dr.</th>
-          <th colspan="3" style="text-align:center; background: rgba(244, 63, 94, 0.08);">Cr.</th>
-        </tr>
-        <tr>
-          <th>Date</th>
-          <th>Particulars</th>
-          <th class="num-col">Amt</th>
-          <th>Date</th>
-          <th>Particulars</th>
-          <th class="num-col">Amt</th>
-        </tr>
-      </thead>
-      <tbody>
-        ${rowsHtml.length > 0 ? rowsHtml : '<tr><td colspan="6" style="text-align:center; color: var(--text-muted)">No entries</td></tr>'}
-      </tbody>
-    </table>
-  `;
-
-  container.appendChild(card);
+  elements.journalBody.innerHTML = rows;
 }
 
-// --- INTERACTIONS ---
-function highlightTxn(txnId) {
-  clearHighlight();
+// Fill the ledger section with one card for each account.
+// Each account gets its own card, and the rows are arranged in Dr./Cr. columns.
+function renderLedgerTables(ledgers, accountNames) {
+  if (accountNames.length === 0) {
+    elements.ledgerGrid.innerHTML = '';
+    elements.ledgerSection.classList.add('hidden');
+    return;
+  }
 
-  const matchingElements = document.querySelectorAll(`[data-txn-id="${txnId}"]`);
+  elements.ledgerSection.classList.remove('hidden');
 
-  matchingElements.forEach((element) => {
-    element.classList.add('highlighted');
+  elements.ledgerGrid.innerHTML = accountNames.map((accountName) => {
+    const ledgerData = ledgers[accountName];
+    const rows = [];
+    const maxRows = Math.max(ledgerData.debitEntries.length, ledgerData.creditEntries.length);
 
-    const parentCard = element.closest('.table-card');
+    for (let i = 0; i < maxRows; i += 1) {
+      const debit = ledgerData.debitEntries[i] || {};
+      const credit = ledgerData.creditEntries[i] || {};
+
+      rows.push(`
+        <tr>
+          <td>${debit.date || ''}</td>
+          <td class="hover-entry" ${debit.txnId ? `data-txn-id="${debit.txnId}"` : ''}>
+            ${debit.text || ''}
+          </td>
+          <td class="num-col">${debit.amount ? formatAmount(debit.amount) : ''}</td>
+
+          <td>${credit.date || ''}</td>
+          <td class="hover-entry" ${credit.txnId ? `data-txn-id="${credit.txnId}"` : ''}>
+            ${credit.text || ''}
+          </td>
+          <td class="num-col">${credit.amount ? formatAmount(credit.amount) : ''}</td>
+        </tr>
+      `);
+    }
+
+    const emptyState = rows.length === 0
+      ? '<tr><td colspan="6" style="text-align:center; color: var(--text-muted)">No entries</td></tr>'
+      : rows.join('');
+
+    return `
+      <div class="table-card" id="table-ledger-${cleanId(accountName)}">
+        <div class="table-card-header">
+          <h2>${accountName}</h2>
+        </div>
+
+        <table>
+          <thead>
+            <tr>
+              <th colspan="3" style="text-align:center; background: rgba(56, 189, 248, 0.08);">Dr.</th>
+              <th colspan="3" style="text-align:center; background: rgba(244, 63, 94, 0.08);">Cr.</th>
+            </tr>
+            <tr>
+              <th>Date</th>
+              <th>Particulars</th>
+              <th class="num-col">Amt</th>
+              <th>Date</th>
+              <th>Particulars</th>
+              <th class="num-col">Amt</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${emptyState}
+          </tbody>
+        </table>
+      </div>
+    `;
+  }).join('');
+}
+
+// Read values from the form and add a new journal entry.
+function handlePostEntry() {
+  const debitAccount = elements.inputDr.value.trim();
+  const creditAccount = elements.inputCr.value.trim();
+  const amount = parseFloat(elements.inputAmount.value);
+  const narrationText = elements.inputNarration.value.trim() || 'Transaction posted in sandbox';
+
+  // Basic validation before saving anything.
+  if (!debitAccount || !creditAccount || isNaN(amount) || amount <= 0) {
+    showToast('Please fill out Debit, Credit, and Amount correctly!');
+    return;
+  }
+
+  // Normalise the account names so the app uses a consistent style.
+  const cleanDebit = debitAccount.endsWith('A/c') ? debitAccount : debitAccount + ' A/c';
+  const cleanCredit = creditAccount.endsWith('A/c') ? creditAccount : creditAccount + ' A/c';
+  const cleanNarration = narrationText.startsWith('Being') ? narrationText : 'Being ' + narrationText;
+
+  journalEntries.push({
+    id: 'txn-' + Date.now(),
+    date: new Date().toISOString().split('T')[0],
+    particularDr: cleanDebit,
+    particularCr: cleanCredit,
+    amount: amount,
+    narration: cleanNarration
+  });
+
+  // Reset the form after posting.
+  elements.inputDr.value = '';
+  elements.inputCr.value = '';
+  elements.inputAmount.value = '';
+  elements.inputNarration.value = '';
+
+  showToast('Entry Posted & Ledgers Updated!');
+  render();
+}
+
+// This is used by the event delegation on the journal and ledger tables.
+// We only need the clicked row's txn id, then we highlight every element with the same id.
+function handleRowHover(event) {
+  const row = event.target.closest('[data-txn-id]');
+
+  if (!row) {
+    return;
+  }
+
+  highlightEntry(row.dataset.txnId);
+}
+
+// Highlight all matching rows and their parent cards.
+function highlightEntry(txnId) {
+  clearHighlights();
+
+  const matchingRows = document.querySelectorAll('[data-txn-id="' + txnId + '"]');
+
+  for (let i = 0; i < matchingRows.length; i += 1) {
+    const row = matchingRows[i];
+    row.classList.add('highlighted');
+
+    const parentCard = row.closest('.table-card');
 
     if (parentCard) {
       parentCard.classList.add('highlighted');
     }
-  });
-}
-
-function clearHighlight() {
-  document.querySelectorAll('.highlighted').forEach((element) => {
-    element.classList.remove('highlighted');
-  });
-}
-
-function showToast(message) {
-  const toast = document.getElementById('toast');
-
-  if (!toast) {
-    return;
   }
+}
 
-  toast.textContent = message;
-  toast.classList.add('show');
+// Remove every highlight that was added during hover.
+function clearHighlights() {
+  const highlightedItems = document.querySelectorAll('.highlighted');
+
+  for (let i = 0; i < highlightedItems.length; i += 1) {
+    highlightedItems[i].classList.remove('highlighted');
+  }
+}
+
+// Show the toast message at the bottom right.
+function showToast(message) {
+  elements.toast.textContent = message;
+  elements.toast.classList.add('show');
 
   setTimeout(() => {
-    toast.classList.remove('show');
+    elements.toast.classList.remove('show');
   }, 2500);
 }
 
-function scrollToElement(id) {
+// Scroll smoothly to a section when the sidebar item is clicked.
+function scrollTo(id) {
   const element = document.getElementById(id);
 
   if (element) {
@@ -390,6 +350,7 @@ function scrollToElement(id) {
   }
 }
 
-function cleanId(str) {
-  return str.replace(/[^a-zA-Z0-9]/g, '');
+// Make a safe id from account names so the sidebar links can target cards.
+function cleanId(text) {
+  return text.replace(/[^a-zA-Z0-9]/g, '');
 }
