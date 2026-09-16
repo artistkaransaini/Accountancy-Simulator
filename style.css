@@ -238,6 +238,12 @@ th {
   font-weight: 600;
 }
 
+tfoot th,
+.ledger-total th {
+  color: var(--text-main);
+  border-top: 2px solid var(--border-color);
+}
+
 .num-col {
   text-align: right;
   font-variant-numeric: tabular-nums;
@@ -263,6 +269,14 @@ tr.hover-entry.highlighted {
 
 .ledger-section.hidden {
   display: none;
+}
+
+.trial-balance-section.hidden {
+  display: none;
+}
+
+.trial-balance-section {
+  margin-top: 5px;
 }
 
 .sandbox-header {
