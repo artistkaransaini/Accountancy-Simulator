@@ -15,7 +15,8 @@ function startApp() {
   drawEverything();
 }
 
-// Keep all HTML references in one place.
+//  All HTML references.
+
 function getHtmlElements() {
   elements = {
     journalBody: document.getElementById('journal-body'),
@@ -245,9 +246,9 @@ function renderTrialBalance(ledgers, accountNames) {
     <th class="num-col">${formatAmount(debitGrandTotal)}</th><th class="num-col">${formatAmount(creditGrandTotal)}</th></tr>`;
 }
 
-// ============================================================
+
 // NAVIGATION AND DISPLAY HELPERS
-// ============================================================
+
 
 function renderSidebar(ledgers, accountNames) {
   let sidebarHTML = `<li class="active" data-target="journal-card">Journal Book <span class="count-badge">${transactions.length}</span></li>`;
