@@ -17,9 +17,9 @@
 
       <div class="class-selector">
         <label>Select Grade</label>
-        <select disabled>
-          <option>Class 11th (Foundations)</option>
-          <option>Class 12th (Locked)</option>
+        <select id="grade-select">
+          <option>Class 11th</option>
+          <option>Class 12th (Coming Soon)</option>
         </select>
       </div>
 
@@ -35,10 +35,15 @@
     </div>
   </aside>
 
+  <button id="menu-toggle" class="menu-toggle" type="button" aria-label="Open navigation menu" aria-expanded="false">
+    <span></span><span></span><span></span>
+  </button>
+  <div id="sidebar-backdrop" class="sidebar-backdrop"></div>
+
   <main id="main-content">
     <header class="top-bar">
       <div class="header-titles">
-        <p>Hover over entries to trace double-entry flow across tables in real time.</p>
+        <p>Click over the entries to trace double-entry flow across tables in real time.</p>
       </div>
     </header>
 
@@ -46,7 +51,10 @@
       <section class="table-card">
         <div class="sandbox-header">
           <h2>+ Post Journal Entry</h2>
-          <button id="clear-sandbox" class="clear-btn" type="button">Clear Sandbox</button>
+          <div class="sandbox-actions">
+            <button id="delete-entry" class="delete-btn" type="button" disabled>Delete Selected Entry</button>
+            <button id="clear-sandbox" class="clear-btn" type="button">Clear Sandbox</button>
+          </div>
         </div>
 
         <div class="sandbox-inputs">

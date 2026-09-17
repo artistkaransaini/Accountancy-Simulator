@@ -1,11 +1,9 @@
-
 // ACCOUNTANCY SIMULATOR
-
 // The transaction list is the single source for every table.
-
 
 let transactions = [];
 let elements = {};
+let selectedTxnId = null;
 
 document.addEventListener('DOMContentLoaded', startApp);
 
@@ -15,8 +13,7 @@ function startApp() {
   drawEverything();
 }
 
-//  All HTML references.
-
+// All HTML references.
 function getHtmlElements() {
   elements = {
     journalBody: document.getElementById('journal-body'),
@@ -27,7 +24,11 @@ function getHtmlElements() {
     activeTablesList: document.getElementById('active-tables-list'),
     toast: document.getElementById('toast'),
     clearSandboxButton: document.getElementById('clear-sandbox'),
+    deleteEntryButton: document.getElementById('delete-entry'),
     postEntryButton: document.getElementById('post-entry'),
+    menuToggle: document.getElementById('menu-toggle'),
+    sidebarBackdrop: document.getElementById('sidebar-backdrop'),
+    gradeSelect: document.getElementById('grade-select'),
     inputDr: document.getElementById('input-dr'),
     inputCr: document.getElementById('input-cr'),
     inputAmount: document.getElementById('input-amount'),
@@ -35,16 +36,23 @@ function getHtmlElements() {
   };
 }
 
-
 // USER INPUT
-
 function connectEvents() {
   elements.postEntryButton.addEventListener('click', postEntry);
   elements.clearSandboxButton.addEventListener('click', clearSandbox);
+  elements.deleteEntryButton.addEventListener('click', deleteSelectedEntry);
+  elements.menuToggle.addEventListener('click', toggleSidebar);
+  elements.sidebarBackdrop.addEventListener('click', closeSidebar);
+  elements.gradeSelect.addEventListener('change', keepFoundationsGrade);
   elements.journalBody.addEventListener('mouseover', handleTableHover);
-  elements.journalBody.addEventListener('mouseleave', clearHighlights);
+  elements.journalBody.addEventListener('mouseleave', clearHoverHighlights);
   elements.ledgerGrid.addEventListener('mouseover', handleTableHover);
-  elements.ledgerGrid.addEventListener('mouseleave', clearHighlights);
+  elements.ledgerGrid.addEventListener('mouseleave', clearHoverHighlights);
+  elements.trialBalanceBody.addEventListener('mouseover', handleTableHover);
+  elements.trialBalanceBody.addEventListener('mouseleave', clearHoverHighlights);
+  
+  // Single click handles selection and cross-table highlighting
+  document.addEventListener('click', handleDocumentClick);
 }
 
 function postEntry() {
@@ -57,8 +65,6 @@ function postEntry() {
     showToast('Please fill out Debit, Credit, and Amount correctly!');
     return;
   }
-
-  // All user input is stored in this one simple object.
 
   const transaction = {
     id: 'txn-' + Date.now(),
@@ -76,8 +82,30 @@ function postEntry() {
 }
 
 function clearSandbox() {
-  transactions = [];
-  showToast('Sandbox Cleared!');
+  if (!transactions.length) return;
+
+  showConfirmModal(
+    'Clear Sandbox?',
+    'This will erase all posted journal entries and reset all ledger accounts. Do you want to proceed?',
+    function () {
+      transactions = [];
+      selectedTxnId = null;
+      showToast('Sandbox Cleared!');
+      drawEverything();
+    }
+  );
+}
+
+function deleteSelectedEntry() {
+  if (!selectedTxnId) {
+    showToast('Select an entry first.');
+    return;
+  }
+
+  transactions = transactions.filter((transaction) => transaction.id !== selectedTxnId);
+  selectedTxnId = null;
+  clearDetailedHighlights();
+  showToast('Selected entry deleted.');
   drawEverything();
 }
 
@@ -97,7 +125,6 @@ function addNarrationLabel(narration) {
 }
 
 // JOURNAL BOOK
-
 function renderJournalTable() {
   if (transactions.length === 0) {
     elements.journalBody.innerHTML = `
@@ -124,12 +151,7 @@ function renderJournalTable() {
   elements.journalBody.innerHTML = rows;
 }
 
-
 // LEDGER BOOK
-
-
-// Turn the transaction list into debit and credit entries per account.
-
 function buildLedgerData() {
   const ledgers = {};
 
@@ -155,6 +177,7 @@ function createLedgerIfNeeded(ledgers, accountName) {
   }
 }
 
+// FEATURE 1 IMPLEMENTATION: Attach transaction data to ALL cells (Date, Particulars, Amount) for full row hover
 function renderLedgerTables(ledgers, accountNames) {
   if (accountNames.length === 0) {
     elements.ledgerGrid.innerHTML = '';
@@ -181,14 +204,17 @@ function renderLedgerTables(ledgers, accountNames) {
       const debitBalance = lastRow && balanceOnDebitSide ? balance : 0;
       const creditBalance = lastRow && !balanceOnDebitSide ? balance : 0;
 
+      const drAttr = debit.txnId ? `data-txn-id="${debit.txnId}" class="hover-entry"` : '';
+      const crAttr = credit.txnId ? `data-txn-id="${credit.txnId}" class="hover-entry"` : '';
+
       rows += `
         <tr>
-          <td>${debit.date || ''}</td>
-          <td class="hover-entry" ${debit.txnId ? `data-txn-id="${debit.txnId}"` : ''}>${debit.text || (debitBalance ? 'Balance c/d' : '')}</td>
-          <td class="num-col">${debit.amount || debitBalance ? formatAmount(debit.amount || debitBalance) : ''}</td>
-          <td>${credit.date || ''}</td>
-          <td class="hover-entry" ${credit.txnId ? `data-txn-id="${credit.txnId}"` : ''}>${credit.text || (creditBalance ? 'Balance c/d' : '')}</td>
-          <td class="num-col">${credit.amount || creditBalance ? formatAmount(credit.amount || creditBalance) : ''}</td>
+          <td ${drAttr}>${debit.date || ''}</td>
+          <td ${drAttr}>${debit.text || (debitBalance ? 'Balance c/d' : '')}</td>
+          <td ${drAttr} class="num-col ${debit.txnId ? 'hover-entry' : ''}">${debit.amount || debitBalance ? formatAmount(debit.amount || debitBalance) : ''}</td>
+          <td ${crAttr}>${credit.date || ''}</td>
+          <td ${crAttr}>${credit.text || (creditBalance ? 'Balance c/d' : '')}</td>
+          <td ${crAttr} class="num-col ${credit.txnId ? 'hover-entry' : ''}">${credit.amount || creditBalance ? formatAmount(credit.amount || creditBalance) : ''}</td>
         </tr>`;
     }
 
@@ -212,10 +238,7 @@ function renderLedgerTables(ledgers, accountNames) {
   elements.ledgerGrid.innerHTML = cards;
 }
 
-
 // TRIAL BALANCE
-
-
 function renderTrialBalance(ledgers, accountNames) {
   if (accountNames.length === 0) {
     elements.trialBalanceSection.classList.add('hidden');
@@ -238,7 +261,8 @@ function renderTrialBalance(ledgers, accountNames) {
 
     debitGrandTotal += debitBalance;
     creditGrandTotal += creditBalance;
-    rows += `<tr><td>${accountName}</td><td class="num-col">${debitBalance ? formatAmount(debitBalance) : ''}</td>
+    const transactionIds = [...ledger.debitEntries, ...ledger.creditEntries].map((entry) => entry.txnId).join(' ');
+    rows += `<tr class="hover-entry" data-txn-id="${transactionIds.split(' ')[0]}" data-txn-ids="${transactionIds}"><td>${accountName}</td><td class="num-col">${debitBalance ? formatAmount(debitBalance) : ''}</td>
       <td class="num-col">${creditBalance ? formatAmount(creditBalance) : ''}</td></tr>`;
   });
 
@@ -246,22 +270,68 @@ function renderTrialBalance(ledgers, accountNames) {
     <th class="num-col">${formatAmount(debitGrandTotal)}</th><th class="num-col">${formatAmount(creditGrandTotal)}</th></tr>`;
 }
 
-
-// NAVIGATION AND DISPLAY HELPERS
-
-
+// FEATURE 3 IMPLEMENTATION: Sidebar with Journal Book, Ledger Accounts dropdown, and Trial Balance
 function renderSidebar(ledgers, accountNames) {
-  let sidebarHTML = `<li class="active" data-target="journal-card">Journal Book <span class="count-badge">${transactions.length}</span></li>`;
+  let sidebarHTML = `
+    <li class="nav-item" data-target="journal-card">
+      <span class="nav-label">Journal Book</span>
+      <span class="count-badge">${transactions.length}</span>
+    </li>
+    
+    <li class="nav-item has-dropdown open" id="ledger-dropdown-header">
+      <div class="dropdown-header">
+        <span class="nav-label">Ledger Accounts</span>
+        <div class="dropdown-meta">
+          <span class="count-badge">${accountNames.length}</span>
+          <span class="chevron-icon">▼</span>
+        </div>
+      </div>
+      <ul class="submenu" id="ledger-submenu">`;
+
   accountNames.forEach((accountName) => {
     const ledger = ledgers[accountName];
     const count = ledger.debitEntries.length + ledger.creditEntries.length;
-    sidebarHTML += `<li data-target="table-ledger-${cleanId(accountName)}">${accountName} <span class="count-badge">${count}</span></li>`;
+    sidebarHTML += `
+      <li class="subnav-item" data-target="table-ledger-${cleanId(accountName)}">
+        <span class="subnav-label">${accountName}</span>
+        <span class="count-badge">${count}</span>
+      </li>`;
   });
+
+  sidebarHTML += `
+      </ul>
+    </li>
+    
+    <li class="nav-item" data-target="trial-balance-card">
+      <span class="nav-label">Trial Balance</span>
+      <span class="count-badge">${accountNames.length}</span>
+    </li>`;
+
   elements.activeTablesList.innerHTML = sidebarHTML;
-  elements.activeTablesList.querySelectorAll('li').forEach((item) => {
-    item.addEventListener('click', () => {
-      const target = document.getElementById(item.dataset.target);
-      if (target) target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+  // Toggle Ledger Dropdown
+  const ledgerHeader = document.getElementById('ledger-dropdown-header');
+  if (ledgerHeader) {
+    const dropdownHeader = ledgerHeader.querySelector('.dropdown-header');
+    dropdownHeader.addEventListener('click', (e) => {
+      e.stopPropagation();
+      ledgerHeader.classList.toggle('open');
+    });
+  }
+
+  // Click Navigation & Smooth Scroll
+  elements.activeTablesList.querySelectorAll('[data-target]').forEach((item) => {
+    item.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const targetId = item.dataset.target;
+      const target = document.getElementById(targetId);
+      if (target) {
+        target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        target.classList.remove('nav-flash');
+        requestAnimationFrame(() => target.classList.add('nav-flash'));
+        setTimeout(() => target.classList.remove('nav-flash'), 2400);
+      }
+      closeSidebar();
     });
   });
 }
@@ -269,22 +339,118 @@ function renderSidebar(ledgers, accountNames) {
 function handleTableHover(event) {
   const row = event.target.closest('[data-txn-id]');
   if (!row) return;
-  clearHighlights();
-  document.querySelectorAll(`[data-txn-id="${row.dataset.txnId}"]`).forEach((item) => {
-    item.classList.add('highlighted');
+  clearHoverHighlights();
+  highlightAccounts(row.dataset.txnId);
+}
+
+// Single click selection & highlighting
+function handleDocumentClick(event) {
+  const entry = event.target.closest('[data-txn-id], [data-txn-ids]');
+  
+  if (entry) {
+    selectedTxnId = entry.dataset.txnId;
+    elements.deleteEntryButton.disabled = false;
+    
+    clearHoverHighlights();
+    clearDetailedHighlights();
+
+    const transactionIds = (entry.dataset.txnIds || entry.dataset.txnId).split(' ');
+    const linkedElements = new Set(transactionIds.flatMap((txnId) => getEntryElements(txnId)));
+    
+    linkedElements.forEach((item) => {
+      item.classList.add('highlighted');
+      const parentCard = item.closest('.table-card');
+      if (parentCard) parentCard.classList.add('highlighted');
+    });
+    return;
+  }
+
+  if (!event.target.closest('#delete-entry') && !event.target.closest('.modal-card')) {
+    selectedTxnId = null;
+    elements.deleteEntryButton.disabled = true;
+    clearDetailedHighlights();
+  }
+}
+
+function getEntryElements(txnId) {
+  return [...document.querySelectorAll(`[data-txn-id="${txnId}"], [data-txn-ids~="${txnId}"]`)];
+}
+
+function highlightAccounts(txnId) {
+  getEntryElements(txnId).forEach((item) => {
+    item.classList.add('hover-highlighted');
     const parentCard = item.closest('.table-card');
-    if (parentCard) parentCard.classList.add('highlighted');
+    if (parentCard) parentCard.classList.add('account-highlighted');
   });
 }
 
-function clearHighlights() {
+function clearHoverHighlights() {
+  document.querySelectorAll('.account-highlighted').forEach((item) => item.classList.remove('account-highlighted'));
+  document.querySelectorAll('.hover-highlighted').forEach((item) => item.classList.remove('hover-highlighted'));
+}
+
+function clearDetailedHighlights() {
   document.querySelectorAll('.highlighted').forEach((item) => item.classList.remove('highlighted'));
+}
+
+function toggleSidebar() {
+  const isOpen = document.body.classList.toggle('sidebar-open');
+  elements.menuToggle.setAttribute('aria-expanded', String(isOpen));
+}
+
+function closeSidebar() {
+  document.body.classList.remove('sidebar-open');
+  elements.menuToggle.setAttribute('aria-expanded', 'false');
+}
+
+function keepFoundationsGrade() {
+  elements.gradeSelect.selectedIndex = 0;
 }
 
 function showToast(message) {
   elements.toast.textContent = message;
   elements.toast.classList.add('show');
   setTimeout(() => elements.toast.classList.remove('show'), 2500);
+}
+
+// Custom Warning Modal
+function showConfirmModal(title, message, onConfirm) {
+  let modalOverlay = document.getElementById('custom-modal');
+  if (!modalOverlay) {
+    modalOverlay = document.createElement('div');
+    modalOverlay.id = 'custom-modal';
+    modalOverlay.className = 'modal-backdrop';
+    document.body.appendChild(modalOverlay);
+  }
+
+  modalOverlay.innerHTML = `
+    <div class="modal-card">
+      <div class="modal-header">
+        <span class="modal-icon">⚠️</span>
+        <h3>${title}</h3>
+      </div>
+      <p class="modal-body">${message}</p>
+      <div class="modal-actions">
+        <button class="modal-btn cancel-btn" id="modal-cancel">Cancel</button>
+        <button class="modal-btn confirm-btn" id="modal-confirm">Clear All</button>
+      </div>
+    </div>
+  `;
+
+  modalOverlay.classList.add('show');
+
+  const cancelBtn = modalOverlay.querySelector('#modal-cancel');
+  const confirmBtn = modalOverlay.querySelector('#modal-confirm');
+
+  function closeModal() {
+    modalOverlay.classList.remove('show');
+  }
+
+  cancelBtn.onclick = closeModal;
+  confirmBtn.onclick = function () {
+    closeModal();
+    onConfirm();
+  };
 }
 
 function drawEverything() {
@@ -294,6 +460,7 @@ function drawEverything() {
   renderLedgerTables(ledgers, accountNames);
   renderTrialBalance(ledgers, accountNames);
   renderSidebar(ledgers, accountNames);
+  elements.deleteEntryButton.disabled = !selectedTxnId || !transactions.some((transaction) => transaction.id === selectedTxnId);
 }
 
 function getTotal(entries) {
