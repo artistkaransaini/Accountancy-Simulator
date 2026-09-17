@@ -196,6 +196,8 @@ function addNarrationLabel(narration) {
   return narration.startsWith('Being') ? narration : 'Being ' + (narration || 'transaction posted');
 }
 
+// JOURNAL FLOW: the form captures a debit, credit, amount, and narration, then each
+// valid submission is stored as a single journal transaction that all reporting views read.
 function renderJournalTable() {
   if (transactions.length === 0) {
     elements.journalBody.innerHTML = `
@@ -222,6 +224,8 @@ function renderJournalTable() {
   elements.journalBody.innerHTML = rows;
 }
 
+// LEDGER FLOW: every posted journal entry is split into debit and credit ledger postings
+// so each account can be reconstructed as a running statement with totals and balances.
 function buildLedgerData() {
   const ledgers = {};
 
@@ -309,6 +313,8 @@ function renderLedgerTables(ledgers, accountNames) {
   elements.ledgerGrid.innerHTML = cards;
 }
 
+// TRIAL BALANCE FLOW: ledger totals are converted into a debit/credit summary for each
+// account, then the grand totals are displayed to confirm the books are balanced.
 function renderTrialBalance(ledgers, accountNames) {
   if (accountNames.length === 0) {
     elements.trialBalanceSection.classList.add('hidden');
@@ -371,7 +377,7 @@ function renderSidebar(ledgers, accountNames) {
       </ul>
     </li>
     
-    <li class="nav-item" data-target="trial-balance-card">
+    <li class="nav-item" data-target="trial-balance-section">
       <span class="nav-label">Trial Balance</span>
       <span class="count-badge">${accountNames.length}</span>
     </li>`;

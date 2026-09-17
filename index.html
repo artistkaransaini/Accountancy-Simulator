@@ -9,10 +9,10 @@
 <body>
 
   <aside id="sidebar">
+    <div id="sidebar-resizer" class="sidebar-resizer" aria-hidden="true"></div>
     <div>
       <div class="brand-header">
         <h1>Accountancy Simulator</h1>
-        <span class="badge">Prototype 0.1</span>
       </div>
 
       <div class="class-selector">
@@ -71,18 +71,20 @@
           <h2>Journal Book</h2>
         </div>
 
-        <table>
-          <thead>
-            <tr>
-              <th style="width: 100px;">Date</th>
-              <th>Particulars</th>
-              <th style="width: 50px;">L.F.</th>
-              <th style="width: 120px;" class="num-col">Debit (₹)</th>
-              <th style="width: 120px;" class="num-col">Credit (₹)</th>
-            </tr>
-          </thead>
-          <tbody id="journal-body"></tbody>
-        </table>
+        <div class="table-wrapper">
+          <table class="journal-table">
+            <thead>
+              <tr>
+                <th class="journal-date-col">Date</th>
+                <th class="journal-particulars-col">Particulars</th>
+                <th class="journal-lf-col">L.F.</th>
+                <th class="journal-amount-col num-col">Debit (₹)</th>
+                <th class="journal-amount-col num-col">Credit (₹)</th>
+              </tr>
+            </thead>
+            <tbody id="journal-body"></tbody>
+          </table>
+        </div>
       </section>
 
       <section id="ledger-section" class="ledger-section">
@@ -94,16 +96,18 @@
           <div class="table-card-header">
             <h2>Trial Balance</h2>
           </div>
-          <table>
-            <thead>
-              <tr>
-                <th>Account Name</th>
-                <th class="num-col">Debit (₹)</th>
-                <th class="num-col">Credit (₹)</th>
-              </tr>
-            </thead>
-            <tbody id="trial-balance-body"></tbody>
-          </table>
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>Account Name</th>
+                  <th class="num-col">Debit (₹)</th>
+                  <th class="num-col">Credit (₹)</th>
+                </tr>
+              </thead>
+              <tbody id="trial-balance-body"></tbody>
+            </table>
+          </div>
         </section>
     </div>
   </main>
