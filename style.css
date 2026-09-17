@@ -1,14 +1,25 @@
-﻿:root {
+﻿/* 
+   1. COLOR VARIABLES & THEME SETUP
+   These variables store reusable colors for backgrounds, borders, and text.
+ */
+:root {
+  /* Dark mode background colors */
   --bg-dark: #080d1a;
   --bg-card: rgba(15, 23, 42, 0.7);
   --bg-card-hover: rgba(30, 41, 59, 0.8);
   --bg-sidebar: rgba(11, 15, 25, 0.9);
+
+  /* Glassmorphism translucent borders */
   --glass-border: rgba(255, 255, 255, 0.1);
   --glass-border-hover: rgba(56, 189, 248, 0.4);
   --glass-highlight: inset 0 1px 1px rgba(255, 255, 255, 0.15);
+
+  /* Text colors */
   --text-main: #f8fafc;
   --text-muted: #94a3b8;
   --border-color: #1e293b;
+
+  /* Accent highlight colors */
   --accent-blue: #38bdf8;
   --accent-cyan: #22d3ee;
   --accent-red: #f43f5e;
@@ -17,17 +28,23 @@
   --highlight-bg: rgba(99, 102, 241, 0.28);
 }
 
+/* 
+   2. GENERAL PAGE RESET & SCROLLBAR
+   Resets default margins and applies a dark background gradient across the page.
+   */
 * {
-  box-sizing: border-box;
+  box-sizing: border-box; /* Includes padding in total element dimensions */
   margin: 0;
   padding: 0;
   font-family: "Inter", "Segoe UI", Roboto, sans-serif;
 }
 
-html, body {
+html, 
+body {
   width: 100%;
   height: 100%;
   background-color: var(--bg-dark);
+  /* Subtle radial light gradients in top-left and bottom-right corners */
   background-image: 
     radial-gradient(at 0% 0%, rgba(56, 189, 248, 0.08) 0px, transparent 50%),
     radial-gradient(at 100% 100%, rgba(99, 102, 241, 0.08) 0px, transparent 50%);
@@ -37,10 +54,10 @@ html, body {
 
 body {
   display: flex;
-  overflow: hidden;
+  overflow: hidden; /* Keeps side menu and workspace in fixed view */
 }
 
-/* Scrollbar styling */
+/* Custom modern thin scrollbar styling */
 ::-webkit-scrollbar {
   height: 6px;
   width: 6px;
@@ -62,7 +79,10 @@ body {
   background: rgba(56, 189, 248, 0.6);
 }
 
-/* FEATURE 4 & 5: Left Menu Spacing & Draggable Resizer Edge */
+/* 
+   3. LEFT SIDEBAR & DRAGGABLE RESIZER EDGE
+   Styles the left menu panel and the draggable edge handle.
+    */
 #sidebar {
   position: relative;
   width: 290px;
@@ -74,20 +94,20 @@ body {
   padding: 24px 18px;
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 20px; /* Clean, balanced spacing between left menu elements */
   transition: width 0.25s ease, flex-basis 0.25s ease, padding 0.25s ease;
   z-index: 100;
   user-select: none;
 }
 
-/* FEATURE 4: Resizer handle on vertical right edge showing '<->' col-resize cursor */
+/* Vertical edge handle allowing user to drag and resize sidebar width */
 .sidebar-resizer {
   position: absolute;
   top: 0;
   right: -5px;
   width: 10px;
   height: 100%;
-  cursor: col-resize;
+  cursor: col-resize; /* Displays '<->' horizontal resize pointer cursor */
   z-index: 20;
   transition: background 0.2s ease;
 }
@@ -97,6 +117,7 @@ body {
   background: rgba(56, 189, 248, 0.4);
 }
 
+/* Collapsed state when sidebar is toggled off on desktop */
 body.sidebar-collapsed #sidebar {
   width: 0 !important;
   flex-basis: 0 !important;
@@ -105,7 +126,7 @@ body.sidebar-collapsed #sidebar {
   border-right: none;
 }
 
-/* FEATURE 3: Menu Toggle Button positioned safely inside top-bar offset */
+/* Sidebar toggle button (Hamburger icon) */
 .menu-toggle {
   display: flex;
   align-items: center;
@@ -136,6 +157,10 @@ body.sidebar-collapsed #sidebar {
   border-radius: 2px;
 }
 
+/* 
+   4. WORKSPACE & TOP BAR HEADER
+   Contains the main content area and page title heading layout.
+    */
 #main-content {
   flex: 1;
   overflow-y: auto;
@@ -150,7 +175,45 @@ body.sidebar-collapsed #sidebar {
   width: 100%;
 }
 
-/* FEATURE 5: Left Menu Element Spacing */
+.top-bar {
+  display: flex;
+  align-items: center;
+  gap: 16px; /* Space between toggle button and header title */
+  margin-bottom: 25px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--glass-border);
+}
+
+.header-titles {
+  display: flex;
+  flex-direction: column;
+}
+
+.header-titles h1 {
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: var(--text-main);
+  line-height: 1.2;
+}
+
+.header-titles p {
+  color: var(--text-muted);
+  font-size: 0.88rem;
+  margin-top: 2px;
+}
+
+.section-title {
+  font-size: 0.95rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: 14px;
+  font-weight: 600;
+}
+
+/* 
+   5. SIDEBAR NAVIGATION ELEMENTS
+    */
 .brand-header {
   padding-bottom: 16px;
   border-bottom: 1px solid var(--glass-border);
@@ -344,44 +407,9 @@ body.sidebar-collapsed #sidebar {
   color: var(--text-main);
 }
 
-/* FEATURE 3: Layout adjustment for Top-Bar & Site Title */
-.top-bar {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  margin-bottom: 25px;
-  padding-bottom: 16px;
-  border-bottom: 1px solid var(--glass-border);
-}
-
-.header-titles {
-  display: flex;
-  flex-direction: column;
-}
-
-.header-titles h1 {
-  font-size: 1.35rem;
-  font-weight: 700;
-  color: var(--text-main);
-  line-height: 1.2;
-}
-
-.header-titles p {
-  color: var(--text-muted);
-  font-size: 0.88rem;
-  margin-top: 2px;
-}
-
-.section-title {
-  font-size: 0.95rem;
-  color: var(--text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  margin-bottom: 14px;
-  font-weight: 600;
-}
-
-/* Table Cards & Spotlight Effects */
+/* 
+   6. TABLE CONTAINER CARDS & MOUSE SPOTLIGHT EFFECT
+    */
 .table-card {
   position: relative;
   background: var(--bg-card);
@@ -396,6 +424,7 @@ body.sidebar-collapsed #sidebar {
   will-change: transform;
 }
 
+/* Interactive card border glowing spotlight */
 .table-card::before {
   content: "";
   position: absolute;
@@ -424,19 +453,31 @@ body.sidebar-collapsed #sidebar {
   opacity: 1;
 }
 
+.table-card h2 {
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--text-main);
+}
+
+.table-card-header {
+  margin-bottom: 14px;
+}
+
 .table-wrapper {
   width: 100%;
   overflow-x: auto;
-  border-radius: 10px; /* Supporting smooth table corners */
+  border-radius: 10px;
 }
 
-/* FEATURE 2: Rounded Corner Radius for Tables */
+/* 
+   7. TABLE STYLES & ROUNDED CORNERS
+   */
 table {
   width: 100%;
-  border-collapse: separate;
+  border-collapse: separate; /* Required for border-radius to render on tables */
   border-spacing: 0;
   font-size: 0.88rem;
-  border-radius: 10px;
+  border-radius: 10px; /* Corner radius for tables inside journal & ledgers */
   overflow: hidden;
   border: 1px solid rgba(255, 255, 255, 0.08);
 }
@@ -470,6 +511,7 @@ tfoot th,
   font-variant-numeric: tabular-nums;
 }
 
+/* Row & Cell hover highlight styling */
 td.hover-entry,
 tr.hover-entry {
   cursor: pointer;
@@ -480,13 +522,7 @@ tr.hover-entry:hover {
   background-color: rgba(56, 189, 248, 0.12);
 }
 
-.section-divider {
-  border: none;
-  height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(56, 189, 248, 0.35), transparent);
-  margin: 15px 0 30px;
-}
-
+/* Highlights for linked entries when selected */
 .table-card.highlighted {
   border-color: var(--accent-purple);
 }
@@ -513,16 +549,7 @@ td.highlighted {
   20%, 70% { border-color: var(--accent-blue); }
 }
 
-.table-card h2 {
-  font-size: 1.05rem;
-  font-weight: 600;
-  color: var(--text-main);
-}
-
-.table-card-header {
-  margin-bottom: 14px;
-}
-
+/* Grid layout for two-column ledger display */
 .ledger-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -539,6 +566,16 @@ td.highlighted {
   margin-top: 5px;
 }
 
+.section-divider {
+  border: none;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(56, 189, 248, 0.35), transparent);
+  margin: 15px 0 30px;
+}
+
+/*
+   8. POST ENTRY FORM INPUTS & BUTTONS
+  */
 .sandbox-header {
   display: flex;
   justify-content: space-between;
@@ -552,7 +589,60 @@ td.highlighted {
   gap: 8px;
 }
 
-/* BUTTONS */
+.sandbox-inputs {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr 1.5fr auto;
+  gap: 12px;
+  width: 100%;
+}
+
+/* Form input box styling with scale and blue hover border */
+.sandbox-inputs input {
+  position: relative;
+  background: rgba(8, 13, 26, 0.7);
+  border: 1px solid var(--glass-border);
+  color: white;
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-size: 0.88rem;
+  min-width: 0;
+  width: 100%;
+  transition: transform 0.25s ease, border-color 0.25s ease;
+  will-change: transform;
+}
+
+/* Scale up slightly and change border color on mouse hover */
+.sandbox-inputs input:hover {
+  transform: scale(1.025);
+  border-color: var(--accent-blue);
+}
+
+/* Active focus state when typing inside input */
+.sandbox-inputs input:focus {
+  transform: scale(1.025);
+  border-color: var(--accent-cyan);
+  outline: none;
+  box-shadow: 0 0 12px rgba(34, 211, 238, 0.25);
+}
+
+/* Button styles */
+.post-btn {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  border: 1px solid rgba(16, 185, 129, 0.5);
+  border-radius: 8px;
+  padding: 10px 20px;
+  color: white;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.25s ease;
+}
+
+.post-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 0 12px rgba(16, 185, 129, 0.35);
+}
+
 .delete-btn {
   background: rgba(244, 63, 94, 0.12);
   color: var(--accent-red);
@@ -592,57 +682,7 @@ td.highlighted {
   transform: translateY(-1px);
 }
 
-.sandbox-inputs {
-  display: grid;
-  grid-template-columns: 1fr 1fr 1fr 1.5fr auto;
-  gap: 12px;
-  width: 100%;
-}
-
-/* FEATURE 1: Spotlight Border & Scale on Hover for Input Textboxes */
-.sandbox-inputs input {
-  position: relative;
-  background: rgba(8, 13, 26, 0.7);
-  border: 1px solid var(--glass-border);
-  color: white;
-  border-radius: 8px;
-  padding: 10px 14px;
-  font-size: 0.88rem;
-  min-width: 0;
-  width: 100%;
-  transition: transform 0.25s ease, border-color 0.25s ease;
-  will-change: transform;
-}
-
-.sandbox-inputs input:hover {
-  transform: scale(1.025);
-  border-color: var(--accent-blue);
-}
-
-.sandbox-inputs input:focus {
-  transform: scale(1.025);
-  border-color: var(--accent-cyan);
-  outline: none;
-  box-shadow: 0 0 12px rgba(34, 211, 238, 0.25);
-}
-
-.post-btn {
-  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-  border: 1px solid rgba(16, 185, 129, 0.5);
-  border-radius: 8px;
-  padding: 10px 20px;
-  color: white;
-  font-weight: 600;
-  cursor: pointer;
-  white-space: nowrap;
-  transition: all 0.25s ease;
-}
-
-.post-btn:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 0 12px rgba(16, 185, 129, 0.35);
-}
-
+/* Debit and Credit entry text color styling */
 .debit-text {
   color: var(--accent-blue);
   font-weight: 600;
@@ -653,7 +693,9 @@ td.highlighted {
   font-weight: 600;
 }
 
-/* TOAST */
+/*
+   9. TOAST NOTIFICATIONS & CONFIRMATION MODAL
+   */
 #toast {
   position: fixed;
   right: 20px;
@@ -676,7 +718,6 @@ td.highlighted {
   transform: translateY(0);
 }
 
-/* MODAL */
 .modal-backdrop {
   position: fixed;
   inset: 0;
@@ -774,7 +815,11 @@ td.highlighted {
   display: none;
 }
 
-/* RESPONSIVE BREAKPOINTS */
+/* 
+   10. RESPONSIVE MEDIA QUERIES
+   Adjusts layout automatically for tablet and mobile screens.
+   */
+/* Medium screens (tablets) */
 @media (max-width: 1200px) {
   .ledger-grid {
     grid-template-columns: 1fr;
@@ -792,6 +837,7 @@ td.highlighted {
   }
 }
 
+/* Small screens (Mobile devices) */
 @media (max-width: 760px) {
   html, body {
     height: auto;
@@ -818,7 +864,7 @@ td.highlighted {
   }
 
   .sidebar-resizer {
-    display: none;
+    display: none; /* Hide drag resizer handle on mobile touchscreens */
   }
 
   .sidebar-backdrop {
