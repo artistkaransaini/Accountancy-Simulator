@@ -1,5 +1,4 @@
 // ACCOUNTANCY SIMULATOR
-// The transaction list is the single source for every table.
 
 let transactions = [];
 let elements = {};
@@ -10,12 +9,14 @@ document.addEventListener('DOMContentLoaded', startApp);
 function startApp() {
   getHtmlElements();
   connectEvents();
+  initSidebarResizer();
   drawEverything();
 }
 
-// All HTML references.
 function getHtmlElements() {
   elements = {
+    sidebar: document.getElementById('sidebar'),
+    sidebarResizer: document.getElementById('sidebar-resizer'),
     journalBody: document.getElementById('journal-body'),
     ledgerGrid: document.getElementById('ledger-grid'),
     ledgerSection: document.getElementById('ledger-section'),
@@ -32,18 +33,21 @@ function getHtmlElements() {
     inputDr: document.getElementById('input-dr'),
     inputCr: document.getElementById('input-cr'),
     inputAmount: document.getElementById('input-amount'),
-    inputNarration: document.getElementById('input-narration')
+    inputNarration: document.getElementById('input-narration'),
+    workspace: document.getElementById('workspace')
   };
 }
 
-// USER INPUT
 function connectEvents() {
   elements.postEntryButton.addEventListener('click', postEntry);
   elements.clearSandboxButton.addEventListener('click', clearSandbox);
   elements.deleteEntryButton.addEventListener('click', deleteSelectedEntry);
   elements.menuToggle.addEventListener('click', toggleSidebar);
-  elements.sidebarBackdrop.addEventListener('click', closeSidebar);
+  if (elements.sidebarBackdrop) {
+    elements.sidebarBackdrop.addEventListener('click', closeSidebar);
+  }
   elements.gradeSelect.addEventListener('change', keepFoundationsGrade);
+
   elements.journalBody.addEventListener('mouseover', handleTableHover);
   elements.journalBody.addEventListener('mouseleave', clearHoverHighlights);
   elements.ledgerGrid.addEventListener('mouseover', handleTableHover);
@@ -51,8 +55,76 @@ function connectEvents() {
   elements.trialBalanceBody.addEventListener('mouseover', handleTableHover);
   elements.trialBalanceBody.addEventListener('mouseleave', clearHoverHighlights);
   
-  // Single click handles selection and cross-table highlighting
+  // Dynamic spotlight coordinates for table cards and input textboxes
+  if (elements.workspace) {
+    elements.workspace.addEventListener('mousemove', handleSpotlightMouseMove);
+  }
+
   document.addEventListener('click', handleDocumentClick);
+}
+
+// FEATURE 1 & 2: Cursor spotlight tracking for Cards & Input textboxes
+function handleSpotlightMouseMove(e) {
+  const target = e.target.closest('.table-card, .sandbox-inputs input');
+  if (!target) return;
+  const rect = target.getBoundingClientRect();
+  const x = e.clientX - rect.left;
+  const y = e.clientY - rect.top;
+  target.style.setProperty('--mouse-x', `${x}px`);
+  target.style.setProperty('--mouse-y', `${y}px`);
+}
+
+// FEATURE 3: Sidebar Toggle
+function toggleSidebar() {
+  if (window.innerWidth <= 760) {
+    const isOpen = document.body.classList.toggle('sidebar-open');
+    elements.menuToggle.setAttribute('aria-expanded', String(isOpen));
+  } else {
+    document.body.classList.toggle('sidebar-collapsed');
+  }
+}
+
+function closeSidebar() {
+  document.body.classList.remove('sidebar-open');
+  elements.menuToggle.setAttribute('aria-expanded', 'false');
+}
+
+// FEATURE 4: Smooth Left Menu Resizing by Dragging Vertical Edge
+function initSidebarResizer() {
+  const sidebar = document.getElementById('sidebar');
+  const resizer = document.getElementById('sidebar-resizer');
+  if (!resizer || !sidebar) return;
+
+  let isResizing = false;
+
+  resizer.addEventListener('pointerdown', (e) => {
+    if (window.innerWidth <= 760) return;
+    isResizing = true;
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+    resizer.setPointerCapture(e.pointerId);
+  });
+
+  resizer.addEventListener('pointermove', (e) => {
+    if (!isResizing) return;
+    const newWidth = e.clientX;
+    if (newWidth >= 220 && newWidth <= 500) {
+      sidebar.style.width = `${newWidth}px`;
+      sidebar.style.flexBasis = `${newWidth}px`;
+    }
+  });
+
+  const stopResize = (e) => {
+    if (isResizing) {
+      isResizing = false;
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+      try { resizer.releasePointerCapture(e.pointerId); } catch (_) {}
+    }
+  };
+
+  resizer.addEventListener('pointerup', stopResize);
+  resizer.addEventListener('pointercancel', stopResize);
 }
 
 function postEntry() {
@@ -124,7 +196,6 @@ function addNarrationLabel(narration) {
   return narration.startsWith('Being') ? narration : 'Being ' + (narration || 'transaction posted');
 }
 
-// JOURNAL BOOK
 function renderJournalTable() {
   if (transactions.length === 0) {
     elements.journalBody.innerHTML = `
@@ -151,7 +222,6 @@ function renderJournalTable() {
   elements.journalBody.innerHTML = rows;
 }
 
-// LEDGER BOOK
 function buildLedgerData() {
   const ledgers = {};
 
@@ -177,7 +247,6 @@ function createLedgerIfNeeded(ledgers, accountName) {
   }
 }
 
-// FEATURE 1 IMPLEMENTATION: Attach transaction data to ALL cells (Date, Particulars, Amount) for full row hover
 function renderLedgerTables(ledgers, accountNames) {
   if (accountNames.length === 0) {
     elements.ledgerGrid.innerHTML = '';
@@ -222,23 +291,24 @@ function renderLedgerTables(ledgers, accountNames) {
     cards += `
       <div class="table-card" id="table-ledger-${cleanId(accountName)}">
         <div class="table-card-header"><h2>${accountName}</h2></div>
-        <table>
-          <thead>
-            <tr><th colspan="3" style="text-align:center; background: rgba(56, 189, 248, 0.08);">Dr.</th>
-              <th colspan="3" style="text-align:center; background: rgba(244, 63, 94, 0.08);">Cr.</th></tr>
-            <tr><th>Date</th><th>Particulars</th><th class="num-col">Amt</th>
-              <th>Date</th><th>Particulars</th><th class="num-col">Amt</th></tr>
-          </thead>
-          <tbody>${rows}</tbody>
-          <tfoot><tr class="ledger-total"><th colspan="2">Total</th><th class="num-col">${formatAmount(equalTotal)}</th>
-            <th colspan="2">Total</th><th class="num-col">${formatAmount(equalTotal)}</th></tr></tfoot>
-        </table>
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr><th colspan="3" style="text-align:center; background: rgba(56, 189, 248, 0.08);">Dr.</th>
+                <th colspan="3" style="text-align:center; background: rgba(244, 63, 94, 0.08);">Cr.</th></tr>
+              <tr><th>Date</th><th>Particulars</th><th class="num-col">Amt</th>
+                <th>Date</th><th>Particulars</th><th class="num-col">Amt</th></tr>
+            </thead>
+            <tbody>${rows}</tbody>
+            <tfoot><tr class="ledger-total"><th colspan="2">Total</th><th class="num-col">${formatAmount(equalTotal)}</th>
+              <th colspan="2">Total</th><th class="num-col">${formatAmount(equalTotal)}</th></tr></tfoot>
+          </table>
+        </div>
       </div>`;
   });
   elements.ledgerGrid.innerHTML = cards;
 }
 
-// TRIAL BALANCE
 function renderTrialBalance(ledgers, accountNames) {
   if (accountNames.length === 0) {
     elements.trialBalanceSection.classList.add('hidden');
@@ -270,7 +340,6 @@ function renderTrialBalance(ledgers, accountNames) {
     <th class="num-col">${formatAmount(debitGrandTotal)}</th><th class="num-col">${formatAmount(creditGrandTotal)}</th></tr>`;
 }
 
-// FEATURE 3 IMPLEMENTATION: Sidebar with Journal Book, Ledger Accounts dropdown, and Trial Balance
 function renderSidebar(ledgers, accountNames) {
   let sidebarHTML = `
     <li class="nav-item" data-target="journal-card">
@@ -309,7 +378,6 @@ function renderSidebar(ledgers, accountNames) {
 
   elements.activeTablesList.innerHTML = sidebarHTML;
 
-  // Toggle Ledger Dropdown
   const ledgerHeader = document.getElementById('ledger-dropdown-header');
   if (ledgerHeader) {
     const dropdownHeader = ledgerHeader.querySelector('.dropdown-header');
@@ -319,7 +387,6 @@ function renderSidebar(ledgers, accountNames) {
     });
   }
 
-  // Click Navigation & Smooth Scroll
   elements.activeTablesList.querySelectorAll('[data-target]').forEach((item) => {
     item.addEventListener('click', (e) => {
       e.stopPropagation();
@@ -343,7 +410,6 @@ function handleTableHover(event) {
   highlightAccounts(row.dataset.txnId);
 }
 
-// Single click selection & highlighting
 function handleDocumentClick(event) {
   const entry = event.target.closest('[data-txn-id], [data-txn-ids]');
   
@@ -393,16 +459,6 @@ function clearDetailedHighlights() {
   document.querySelectorAll('.highlighted').forEach((item) => item.classList.remove('highlighted'));
 }
 
-function toggleSidebar() {
-  const isOpen = document.body.classList.toggle('sidebar-open');
-  elements.menuToggle.setAttribute('aria-expanded', String(isOpen));
-}
-
-function closeSidebar() {
-  document.body.classList.remove('sidebar-open');
-  elements.menuToggle.setAttribute('aria-expanded', 'false');
-}
-
 function keepFoundationsGrade() {
   elements.gradeSelect.selectedIndex = 0;
 }
@@ -413,7 +469,6 @@ function showToast(message) {
   setTimeout(() => elements.toast.classList.remove('show'), 2500);
 }
 
-// Custom Warning Modal
 function showConfirmModal(title, message, onConfirm) {
   let modalOverlay = document.getElementById('custom-modal');
   if (!modalOverlay) {
